@@ -14,7 +14,8 @@ type SearchParams = {
   tags?: string
 }
 
-export default async function CallsPage({ searchParams }: { searchParams: SearchParams }) {
+export default async function CallsPage({ searchParams }: { searchParams: Promise<SearchParams> }) {
+  const sp = await searchParams
   const user = await getCurrentUserServer()
   if (!user) return (
     <div>
@@ -22,24 +23,24 @@ export default async function CallsPage({ searchParams }: { searchParams: Search
     </div>
   )
   await connectMongo()
-  const page = Number(searchParams.page || 1)
-  const pageSize = Math.min(Number(searchParams.pageSize || 20), 100)
+  const page = Number(sp.page || 1)
+  const pageSize = Math.min(Number(sp.pageSize || 20), 100)
   const filter: any = {}
-  if (searchParams.status) filter.status = searchParams.status
-  if (searchParams.priority) filter.priority = searchParams.priority
-  if (searchParams.q) filter.$or = [
-    { callerName: { $regex: searchParams.q, $options: 'i' } },
-    { phoneNumber: { $regex: searchParams.q, $options: 'i' } },
-    { transcript: { $regex: searchParams.q, $options: 'i' } },
-    { summary: { $regex: searchParams.q, $options: 'i' } }
+  if (sp.status) filter.status = sp.status
+  if (sp.priority) filter.priority = sp.priority
+  if (sp.q) filter.$or = [
+    { callerName: { $regex: sp.q, $options: 'i' } },
+    { phoneNumber: { $regex: sp.q, $options: 'i' } },
+    { transcript: { $regex: sp.q, $options: 'i' } },
+    { summary: { $regex: sp.q, $options: 'i' } }
   ]
-  if (searchParams.startDate || searchParams.endDate) {
+  if (sp.startDate || sp.endDate) {
     filter.callTime = {}
-    if (searchParams.startDate) filter.callTime.$gte = new Date(searchParams.startDate)
-    if (searchParams.endDate) filter.callTime.$lte = new Date(searchParams.endDate)
+    if (sp.startDate) filter.callTime.$gte = new Date(sp.startDate)
+    if (sp.endDate) filter.callTime.$lte = new Date(sp.endDate)
   }
-  if (searchParams.tags) {
-    const tags = searchParams.tags.split(',').map(t => t.trim()).filter(Boolean)
+  if (sp.tags) {
+    const tags = sp.tags.split(',').map(t => t.trim()).filter(Boolean)
     if (tags.length) filter.tags = { $all: tags }
   }
   const total = await CallModel.countDocuments(filter)
@@ -54,22 +55,22 @@ export default async function CallsPage({ searchParams }: { searchParams: Search
       <h1 className="text-2xl font-semibold">Calls</h1>
       <div className="rounded border bg-white p-4">
         <form className="grid grid-cols-1 gap-4 md:grid-cols-6">
-          <input name="q" placeholder="Search" className="rounded border px-3 py-2 md:col-span-2" defaultValue={searchParams.q || ''} />
+          <input name="q" placeholder="Search" className="rounded border px-3 py-2 md:col-span-2" defaultValue={sp.q || ''} />
           <select name="status" className="rounded border px-3 py-2">
             <option value="">All Status</option>
-            <option value="new" selected={searchParams.status === 'new'}>new</option>
-            <option value="in-progress" selected={searchParams.status === 'in-progress'}>in-progress</option>
-            <option value="resolved" selected={searchParams.status === 'resolved'}>resolved</option>
+            <option value="new" selected={sp.status === 'new'}>new</option>
+            <option value="in-progress" selected={sp.status === 'in-progress'}>in-progress</option>
+            <option value="resolved" selected={sp.status === 'resolved'}>resolved</option>
           </select>
           <select name="priority" className="rounded border px-3 py-2">
             <option value="">All Priority</option>
-            <option value="low" selected={searchParams.priority === 'low'}>low</option>
-            <option value="medium" selected={searchParams.priority === 'medium'}>medium</option>
-            <option value="high" selected={searchParams.priority === 'high'}>high</option>
+            <option value="low" selected={sp.priority === 'low'}>low</option>
+            <option value="medium" selected={sp.priority === 'medium'}>medium</option>
+            <option value="high" selected={sp.priority === 'high'}>high</option>
           </select>
-          <input type="date" name="startDate" className="rounded border px-3 py-2" defaultValue={searchParams.startDate || ''} />
-          <input type="date" name="endDate" className="rounded border px-3 py-2" defaultValue={searchParams.endDate || ''} />
-          <input name="tags" placeholder="tags comma separated" className="rounded border px-3 py-2 md:col-span-2" defaultValue={searchParams.tags || ''} />
+          <input type="date" name="startDate" className="rounded border px-3 py-2" defaultValue={sp.startDate || ''} />
+          <input type="date" name="endDate" className="rounded border px-3 py-2" defaultValue={sp.endDate || ''} />
+          <input name="tags" placeholder="tags comma separated" className="rounded border px-3 py-2 md:col-span-2" defaultValue={sp.tags || ''} />
           <button className="rounded bg-blue-600 px-4 py-2 text-white md:col-span-1">Filter</button>
         </form>
       </div>
@@ -104,8 +105,8 @@ export default async function CallsPage({ searchParams }: { searchParams: Search
       <div className="flex items-center justify-between">
         <div>Page {page} of {Math.ceil(total / pageSize) || 1}</div>
         <div className="flex gap-2">
-          {page > 1 && <Link className="rounded border px-3 py-1" href={`/calls?${new URLSearchParams({ ...searchParams, page: String(page - 1) }).toString()}`}>Prev</Link>}
-          {(page * pageSize) < total && <Link className="rounded border px-3 py-1" href={`/calls?${new URLSearchParams({ ...searchParams, page: String(page + 1) }).toString()}`}>Next</Link>}
+          {page > 1 && <Link className="rounded border px-3 py-1" href={`/calls?${new URLSearchParams({ ...sp, page: String(page - 1) }).toString()}`}>Prev</Link>}
+          {(page * pageSize) < total && <Link className="rounded border px-3 py-1" href={`/calls?${new URLSearchParams({ ...sp, page: String(page + 1) }).toString()}`}>Next</Link>}
         </div>
       </div>
     </div>

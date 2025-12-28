@@ -4,7 +4,15 @@ import { getCurrentUserServer } from '../../../lib/auth'
 import CallModel from '../../../models/Call'
 import UserModel from '../../../models/User'
 
-export default async function CallDetailPage({ params }: { params: { id: string } }) {
+export default async function CallDetailPage({
+  params,
+  searchParams
+}: {
+  params: Promise<{ id: string }>
+  searchParams: Promise<Record<string, string>>
+}) {
+  const { id } = await params
+  await searchParams
   const user = await getCurrentUserServer()
   if (!user) return (
     <div>
@@ -12,7 +20,7 @@ export default async function CallDetailPage({ params }: { params: { id: string 
     </div>
   )
   await connectMongo()
-  const call = (await CallModel.findById(params.id).lean()) as any
+  const call = (await CallModel.findById(id).lean()) as any
   if (!call) notFound()
   const users = (await UserModel.find().lean()) as any[]
 
